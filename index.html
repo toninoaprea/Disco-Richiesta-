@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎵 Richieste Musicali — Spiaggia</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sand: #f5e6c8; --sand-dark: #e8d4a8;
+    --ocean: #1a6b8a; --ocean-light: #2a8fab;
+    --sunset: #e85d26; --sunset-light: #f4874b;
+    --white: #fefcf7; --text: #2c1a0e; --text-muted: #7a5c42;
+    --shadow: rgba(44,26,14,0.15);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: linear-gradient(160deg, #87ceeb 0%, #62b8d4 20%, #2a8fab 45%, #1a6b8a 60%, #f5e6c8 60%, #e8d4a8 100%); min-height: 100vh; position: relative; overflow-x: hidden; }
+
+  .waves { position: fixed; top: 55%; left: 0; width: 100%; height: 80px; pointer-events: none; z-index: 0; }
+  .wave { position: absolute; width: 200%; height: 100%; border-radius: 40%; animation: wave-anim 6s infinite linear; opacity: 0.4; }
+  .wave-1 { background: rgba(255,255,255,0.6); top: -20px; animation-duration: 5s; }
+  .wave-2 { background: rgba(42,143,171,0.5); top: 10px; animation-duration: 7s; animation-delay: -2s; }
+  @keyframes wave-anim { 0% { transform: translateX(0) rotate(0deg); } 100% { transform: translateX(-50%) rotate(360deg); } }
+
+  .sun { position: fixed; top: 40px; right: 80px; width: 80px; height: 80px; background: radial-gradient(circle, #fff7a0, #ffd700, #ffaa00); border-radius: 50%; box-shadow: 0 0 40px 15px rgba(255,200,0,0.4), 0 0 80px 30px rgba(255,180,0,0.2); animation: sun-pulse 4s ease-in-out infinite; z-index: 0; }
+  @keyframes sun-pulse { 0%,100% { box-shadow: 0 0 40px 15px rgba(255,200,0,0.4),0 0 80px 30px rgba(255,180,0,0.2); } 50% { box-shadow: 0 0 60px 25px rgba(255,200,0,0.5),0 0 100px 40px rgba(255,180,0,0.3); } }
+
+  .birds { position: fixed; top: 80px; left: 10%; z-index: 0; pointer-events: none; }
+  .bird { display: inline-block; width: 20px; height: 8px; border-top: 2px solid rgba(255,255,255,0.7); border-radius: 50% 50% 0 0; border-left: 1px solid transparent; border-right: 1px solid transparent; animation: fly 3s ease-in-out infinite; margin: 0 8px; }
+  .bird:nth-child(2) { animation-delay: 0.3s; margin-top: -8px; }
+  .bird:nth-child(3) { animation-delay: 0.6s; }
+  @keyframes fly { 0%,100% { transform: scaleY(1); } 50% { transform: scaleY(-0.5); } }
+
+  .container { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 40px 20px 80px; }
+
+  .header { text-align: center; margin-bottom: 40px; }
+  .header h1 { font-family: 'Playfair Display', serif; font-size: clamp(2.2rem,5vw,3.4rem); color: var(--white); text-shadow: 0 2px 20px rgba(0,0,0,0.3); letter-spacing: -0.5px; line-height: 1.15; }
+  .header h1 em { font-style: italic; color: #fff7a0; }
+  .header p { color: rgba(255,255,255,0.85); font-weight: 300; font-size: 1rem; margin-top: 8px; letter-spacing: 0.5px; }
+  .music-note { display: inline-block; font-size: 1.8rem; animation: bounce-note 1.5s ease-in-out infinite; }
+  @keyframes bounce-note { 0%,100% { transform: translateY(0) rotate(-5deg); } 50% { transform: translateY(-8px) rotate(5deg); } }
+
+  .status-dot { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.2); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 5px 14px; font-size: 0.8rem; color: white; margin-top: 12px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #aaa; transition: background 0.3s; }
+  .dot.connected { background: #4caf50; box-shadow: 0 0 6px #4caf50; animation: dot-pulse 2s infinite; }
+  .dot.error { background: #f44336; }
+  @keyframes dot-pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+
+  .card { background: rgba(254,252,247,0.92); backdrop-filter: blur(12px); border-radius: 20px; box-shadow: 0 8px 40px var(--shadow), 0 1px 0 rgba(255,255,255,0.8) inset; border: 1px solid rgba(255,255,255,0.6); overflow: hidden; }
+
+  .form-card { padding: 36px; margin-bottom: 30px; }
+  .form-card h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--ocean); margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full-width { grid-column: 1 / -1; }
+  label { font-size: 0.78rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; }
+  input, textarea { font-family: 'DM Sans', sans-serif; font-size: 0.95rem; color: var(--text); background: rgba(232,212,168,0.25); border: 1.5px solid rgba(232,212,168,0.6); border-radius: 10px; padding: 10px 14px; transition: all 0.2s ease; outline: none; resize: none; }
+  input:focus, textarea:focus { border-color: var(--ocean-light); background: rgba(42,143,171,0.06); box-shadow: 0 0 0 3px rgba(42,143,171,0.12); }
+  textarea { min-height: 70px; }
+  .btn-submit { width: 100%; margin-top: 8px; padding: 14px; background: linear-gradient(135deg, var(--sunset), var(--sunset-light)); color: white; border: none; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 16px rgba(232,93,38,0.35); }
+  .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(232,93,38,0.45); }
+  .btn-submit:active { transform: translateY(0); }
+  .btn-submit:disabled { background: linear-gradient(135deg, #c8a48a, #d4b898); box-shadow: none; cursor: not-allowed; transform: none; }
+
+  .counter-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .counter-bar h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--ocean); }
+  .counter-badge { background: var(--ocean); color: white; font-size: 0.82rem; font-weight: 500; padding: 4px 12px; border-radius: 20px; }
+  .progress-track { height: 5px; background: var(--sand-dark); border-radius: 3px; margin-bottom: 24px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--ocean-light), var(--sunset)); border-radius: 3px; transition: width 0.5s ease; }
+
+  .list-card { padding: 36px; }
+  .request-list { display: flex; flex-direction: column; gap: 16px; }
+
+  /* Card canzone raggruppata */
+  .song-card { background: linear-gradient(135deg, rgba(232,212,168,0.25), rgba(255,255,255,0.45)); border: 1px solid rgba(232,212,168,0.7); border-radius: 16px; overflow: hidden; animation: slide-in 0.4s ease both; position: relative; }
+  .song-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(180deg, var(--ocean-light), var(--sunset)); border-radius: 4px 0 0 4px; }
+  @keyframes slide-in { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+  .song-header { padding: 16px 20px 14px 20px; }
+  .song-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .song-title { font-family: 'Playfair Display', serif; font-size: 1.15rem; color: var(--text); font-weight: 700; }
+  .song-artist { font-size: 0.85rem; color: var(--ocean); font-weight: 500; margin-top: 3px; }
+  .dediche-count { flex-shrink: 0; background: var(--ocean); color: white; font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; margin-top: 2px; white-space: nowrap; }
+
+  /* Lista dediche */
+  .dediche-list { border-top: 1px solid rgba(232,212,168,0.6); }
+
+  .dedica-row { display: flex; align-items: flex-start; gap: 10px; padding: 11px 20px; border-bottom: 1px solid rgba(232,212,168,0.35); transition: background 0.15s; }
+  .dedica-row:last-child { border-bottom: none; }
+  .dedica-row:hover { background: rgba(232,212,168,0.15); }
+
+  .dedica-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+  .dedica-content { flex: 1; min-width: 0; }
+  .dedica-meta { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 2px; }
+  .dedica-meta strong { color: var(--text); }
+  .dedica-testo { font-size: 0.85rem; color: var(--text); font-style: italic; margin-top: 4px; line-height: 1.4; }
+
+  /* Bottone elimina dedica (solo admin) */
+  .btn-del-dedica { display: none; flex-shrink: 0; background: none; border: none; cursor: pointer; color: #c0392b; font-size: 1rem; padding: 2px 4px; border-radius: 6px; transition: background 0.15s; line-height: 1; }
+  .btn-del-dedica:hover { background: rgba(192,57,43,0.1); }
+  body.admin-mode .btn-del-dedica { display: block; }
+
+  .loading { text-align: center; padding: 30px; color: var(--text-muted); }
+  .spinner { display: inline-block; width: 30px; height: 30px; border: 3px solid rgba(42,143,171,0.2); border-top-color: var(--ocean-light); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 10px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .empty-state { text-align: center; padding: 30px; color: var(--text-muted); }
+  .empty-state .icon { font-size: 2.5rem; margin-bottom: 10px; }
+  .empty-state p { font-size: 0.95rem; line-height: 1.5; }
+
+  .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--ocean); color: white; padding: 12px 24px; border-radius: 30px; font-size: 0.9rem; font-weight: 500; box-shadow: 0 8px 24px rgba(26,107,138,0.4); z-index: 200; transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1); pointer-events: none; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── ADMIN ── */
+  #adminTrigger { position: fixed; bottom: 0; right: 0; width: 60px; height: 60px; z-index: 999; cursor: default; }
+
+  #adminOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); z-index: 1000; align-items: center; justify-content: center; }
+  #adminOverlay.visible { display: flex; }
+
+  .admin-box { background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 36px; width: 320px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+  .admin-box h3 { font-family: 'Playfair Display', serif; color: white; font-size: 1.4rem; margin-bottom: 6px; }
+  .admin-box p { color: rgba(255,255,255,0.5); font-size: 0.85rem; margin-bottom: 20px; }
+  #adminPwInput { width: 100%; background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 11px 14px; color: white; font-family: 'DM Sans', sans-serif; font-size: 1rem; outline: none; margin-bottom: 14px; text-align: center; letter-spacing: 3px; }
+  #adminPwInput:focus { border-color: var(--ocean-light); }
+  .admin-btn-row { display: flex; gap: 10px; }
+  .btn-admin-ok { flex: 1; padding: 11px; border: none; border-radius: 10px; background: var(--ocean); color: white; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 500; cursor: pointer; }
+  .btn-admin-ok:hover { background: var(--ocean-light); }
+  .btn-admin-cancel { flex: 1; padding: 11px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; background: transparent; color: rgba(255,255,255,0.6); font-family: 'DM Sans', sans-serif; font-size: 0.95rem; cursor: pointer; }
+  .btn-admin-cancel:hover { background: rgba(255,255,255,0.08); }
+
+  #adminPanel { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; }
+  #adminPanel.visible { display: flex; }
+  .admin-panel-box { background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 40px; width: 400px; max-width: 90vw; text-align: center; box-shadow: 0 24px 80px rgba(0,0,0,0.6); }
+  .admin-panel-box h3 { font-family: 'Playfair Display', serif; color: white; font-size: 1.6rem; margin-bottom: 8px; }
+  .admin-count { color: rgba(255,255,255,0.5); font-size: 0.9rem; margin-bottom: 6px; }
+  .admin-count strong { color: var(--sunset-light); font-size: 1.1rem; }
+  .admin-mode-badge { display: inline-block; background: rgba(231,76,60,0.2); border: 1px solid rgba(231,76,60,0.4); color: #e74c3c; font-size: 0.78rem; padding: 3px 10px; border-radius: 20px; margin-bottom: 24px; }
+  .btn-danger { width: 100%; padding: 14px; border: none; border-radius: 12px; background: linear-gradient(135deg, #c0392b, #e74c3c); color: white; font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 12px; box-shadow: 0 4px 20px rgba(231,76,60,0.4); }
+  .btn-danger:hover { transform: translateY(-1px); box-shadow: 0 6px 26px rgba(231,76,60,0.55); }
+  .admin-divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 16px 0; }
+  .btn-admin-close { width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; background: transparent; color: rgba(255,255,255,0.5); font-family: 'DM Sans', sans-serif; font-size: 0.95rem; cursor: pointer; }
+  .btn-admin-close:hover { background: rgba(255,255,255,0.06); color: white; }
+  .admin-hint { color: rgba(255,255,255,0.2); font-size: 0.75rem; margin-top: 14px; }
+
+  /* Banner modalità admin attiva */
+  #adminModeBanner { display: none; position: fixed; top: 0; left: 0; right: 0; background: rgba(192,57,43,0.92); backdrop-filter: blur(6px); color: white; text-align: center; padding: 8px 16px; font-size: 0.82rem; font-weight: 500; z-index: 500; letter-spacing: 0.3px; }
+  #adminModeBanner.visible { display: block; }
+  #adminModeBanner button { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 2px 10px; border-radius: 10px; font-size: 0.78rem; cursor: pointer; margin-left: 12px; }
+
+  @media (max-width: 560px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.full-width { grid-column: 1; }
+    .form-card, .list-card { padding: 24px 20px; }
+    .sun { width: 55px; height: 55px; right: 25px; top: 25px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sun"></div>
+<div class="birds">
+  <div class="bird"></div><div class="bird"></div><div class="bird"></div>
+</div>
+<div class="waves">
+  <div class="wave wave-1"></div><div class="wave wave-2"></div>
+</div>
+
+<!-- Banner admin attivo -->
+<div id="adminModeBanner">
+  🔴 Modalità Admin attiva — i tasti 🗑️ sono visibili solo a te
+  <button onclick="exitAdminMode()">Esci</button>
+</div>
+
+<div class="container">
+  <header class="header">
+    <h1><span class="music-note">♪</span> Musica alla <em>Spiaggia</em> <span class="music-note">♫</span></h1>
+    <p>Dedica una canzone a chi vuoi bene — la suoniamo per te!</p>
+    <div class="status-dot">
+      <span class="dot" id="dot"></span>
+      <span id="statusText">Connessione...</span>
+    </div>
+  </header>
+
+  <div class="card form-card">
+    <h2>🎵 Fai la tua richiesta</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Artista / Autore</label>
+        <input id="autore" type="text" placeholder="es. Vasco Rossi">
+      </div>
+      <div class="form-group">
+        <label>Canzone</label>
+        <input id="canzone" type="text" placeholder="es. Vita spericolata">
+      </div>
+      <div class="form-group">
+        <label>Da</label>
+        <input id="da" type="text" placeholder="Il tuo nome">
+      </div>
+      <div class="form-group">
+        <label>Per</label>
+        <input id="per" type="text" placeholder="A chi dedichi">
+      </div>
+      <div class="form-group full-width">
+        <label>Dedica (opzionale)</label>
+        <textarea id="dedica" placeholder="Scrivi il tuo messaggio..."></textarea>
+      </div>
+    </div>
+    <button class="btn-submit" id="submitBtn" onclick="submitRequest()">🌊 Invia Richiesta</button>
+  </div>
+
+  <div class="card list-card">
+    <div class="counter-bar">
+      <h2>📋 Lista delle richieste</h2>
+      <span class="counter-badge" id="counterBadge">0 / 30</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <div class="request-list" id="requestList">
+      <div class="loading"><div class="spinner"></div><p>Connessione a Firebase...</p></div>
+    </div>
+  </div>
+</div>
+
+<div id="adminTrigger"></div>
+
+<!-- Login admin -->
+<div id="adminOverlay">
+  <div class="admin-box">
+    <h3>🔐 Area Riservata</h3>
+    <p>Inserisci la password admin</p>
+    <input id="adminPwInput" type="password" placeholder="••••••••" autocomplete="off">
+    <div class="admin-btn-row">
+      <button class="btn-admin-ok" onclick="checkAdminPassword()">Entra</button>
+      <button class="btn-admin-cancel" onclick="closeAdminOverlay()">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pannello admin -->
+<div id="adminPanel">
+  <div class="admin-panel-box">
+    <h3>🎛️ Pannello Admin</h3>
+    <p class="admin-count">Richieste totali: <strong id="adminCount">0</strong> &nbsp;|&nbsp; Canzoni: <strong id="adminSongs">0</strong></p>
+    <div class="admin-mode-badge">🗑️ I tasti elimina dedica sono ora visibili</div>
+
+    <button class="btn-danger" onclick="svuotaLista()">🗑️ Svuota tutta la lista</button>
+
+    <hr class="admin-divider">
+    <button class="btn-admin-close" onclick="closeAdminPanel()">✕ Chiudi — torna alla lista</button>
+    <p class="admin-hint">Tocca 5× l'angolo in basso a destra per riaprire</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, push, onValue, query, orderByChild, remove, child }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  // ============================================================
+  // 🔧 SOSTITUISCI CON LA TUA CONFIGURAZIONE FIREBASE
+  // ============================================================
+  const firebaseConfig = {
+    apiKey: "INSERISCI_API_KEY",
+    authDomain: "INSERISCI_PROJECT_ID.firebaseapp.com",
+    databaseURL: "https://INSERISCI_PROJECT_ID-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "INSERISCI_PROJECT_ID",
+    storageBucket: "INSERISCI_PROJECT_ID.appspot.com",
+    messagingSenderId: "INSERISCI_SENDER_ID",
+    appId: "INSERISCI_APP_ID"
+  };
+
+  // ============================================================
+  // 🔑 CAMBIA QUESTA PASSWORD ADMIN
+  // ============================================================
+  const ADMIN_PASSWORD = "spiaggia2025";
+  // ============================================================
+
+  const MAX = 30; // max dediche totali
+  const DB_PATH = 'richieste';
+
+  let db, requestsRef;
+  let currentCount = 0;   // totale dediche
+  let allEntries = [];    // tutte le dediche flat
+
+  function setStatus(ok) {
+    document.getElementById('dot').className = ok ? 'dot connected' : 'dot error';
+    document.getElementById('statusText').textContent = ok ? 'In tempo reale 🔴' : 'Disconnesso';
+  }
+
+  function showToast(msg, error = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = error ? '#b03a2e' : '#1a6b8a';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  function esc(s) {
+    return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Chiave di raggruppamento: titolo+artista normalizzati
+  function groupKey(r) {
+    return (r.canzone||'').toLowerCase().trim() + '|||' + (r.autore||'').toLowerCase().trim();
+  }
+
+  function renderList(entries) {
+    allEntries = entries;
+    currentCount = entries.length;
+
+    const container = document.getElementById('requestList');
+    const badge = document.getElementById('counterBadge');
+    const fill = document.getElementById('progressFill');
+    const btn = document.getElementById('submitBtn');
+
+    badge.textContent = `${currentCount} / ${MAX}`;
+    fill.style.width = `${(currentCount / MAX) * 100}%`;
+    btn.disabled = currentCount >= MAX;
+    btn.textContent = currentCount >= MAX ? '🚫 Lista piena — grazie!' : '🌊 Invia Richiesta';
+    document.getElementById('adminCount').textContent = currentCount;
+
+    if (entries.length === 0) {
+      container.innerHTML = `<div class="empty-state"><div class="icon">🏖️</div><p>Nessuna richiesta ancora.<br>Sii il primo a dedicare una canzone!</p></div>`;
+      document.getElementById('adminSongs').textContent = '0';
+      return;
+    }
+
+    // Raggruppa per canzone+artista mantenendo ordine prima apparizione
+    const groups = new Map();
+    entries.forEach(r => {
+      const k = groupKey(r);
+      if (!groups.has(k)) groups.set(k, { canzone: r.canzone, autore: r.autore, dediche: [] });
+      groups.get(k).dediche.push(r);
+    });
+
+    document.getElementById('adminSongs').textContent = groups.size;
+
+    let num = 1;
+    container.innerHTML = [...groups.values()].map(g => {
+      const n = num++;
+      const dicheBadge = g.dediche.length > 1
+        ? `<span class="dediche-count">♥ ${g.dediche.length} dediche</span>`
+        : '';
+
+      const dedRows = g.dediche.map(d => {
+        const hasMeta = d.da || d.per;
+        const metaHtml = hasMeta
+          ? `<div class="dedica-meta">
+              ${d.da ? `👤 Da: <strong>${esc(d.da)}</strong>` : ''}
+              ${d.da && d.per ? ' &nbsp;→&nbsp; ' : ''}
+              ${d.per ? `💛 Per: <strong>${esc(d.per)}</strong>` : ''}
+             </div>`
+          : '';
+        const testoHtml = d.dedica
+          ? `<div class="dedica-testo">"${esc(d.dedica)}"</div>` : '';
+        const noContent = !hasMeta && !d.dedica;
+
+        return `
+          <div class="dedica-row">
+            <span class="dedica-icon">${g.dediche.length > 1 ? '♪' : '🎵'}</span>
+            <div class="dedica-content">
+              ${metaHtml}
+              ${testoHtml}
+              ${noContent ? '<div class="dedica-meta" style="font-style:italic;opacity:0.5">Nessuna dedica</div>' : ''}
+            </div>
+            <button class="btn-del-dedica" onclick="deleteDedica('${d._key}')" title="Elimina questa dedica">🗑️</button>
+          </div>`;
+      }).join('');
+
+      return `
+        <div class="song-card">
+          <div class="song-header">
+            <div class="song-title-row">
+              <div>
+                <div class="song-title">🎵 ${esc(g.canzone)}</div>
+                <div class="song-artist">${esc(g.autore)}</div>
+              </div>
+              ${dicheBadge}
+            </div>
+          </div>
+          <div class="dediche-list">${dedRows}</div>
+        </div>`;
+    }).join('');
+  }
+
+  async function submitRequest() {
+    const autore = document.getElementById('autore').value.trim();
+    const canzone = document.getElementById('canzone').value.trim();
+    const da = document.getElementById('da').value.trim();
+    const per = document.getElementById('per').value.trim();
+    const dedica = document.getElementById('dedica').value.trim();
+
+    if (!autore || !canzone) { showToast('⚠️ Inserisci almeno artista e canzone!', true); return; }
+    if (currentCount >= MAX) { showToast('🚫 La lista è piena, grazie!', true); return; }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.textContent = '⏳ Invio...';
+
+    try {
+      await push(requestsRef, { autore, canzone, da, per, dedica, ts: Date.now() });
+      ['autore','canzone','da','per','dedica'].forEach(id => document.getElementById(id).value = '');
+      showToast('✅ Richiesta salvata! La suoniamo presto 🎶');
+    } catch(e) {
+      showToast('❌ Errore di connessione, riprova.', true);
+    } finally {
+      btn.disabled = currentCount >= MAX;
+      btn.textContent = currentCount >= MAX ? '🚫 Lista piena — grazie!' : '🌊 Invia Richiesta';
+    }
+  }
+
+  async function deleteDedica(key) {
+    if (!confirm('Eliminare questa dedica?')) return;
+    try {
+      await remove(child(requestsRef, key));
+      showToast('✅ Dedica eliminata.');
+    } catch(e) {
+      showToast('❌ Errore durante l\'eliminazione.', true);
+    }
+  }
+
+  async function svuotaLista() {
+    if (!confirm(`Sei sicuro? Verranno cancellate tutte le ${currentCount} richieste.`)) return;
+    try {
+      await remove(requestsRef);
+      showToast('✅ Lista svuotata!');
+      closeAdminPanel();
+    } catch(e) {
+      showToast('❌ Errore durante la cancellazione.', true);
+    }
+  }
+
+  // ── Admin UI ──
+  let tapCount = 0, tapTimer = null;
+
+  function checkAdminPassword() {
+    const pw = document.getElementById('adminPwInput').value;
+    if (pw === ADMIN_PASSWORD) {
+      closeAdminOverlay();
+      document.getElementById('adminPanel').classList.add('visible');
+      document.body.classList.add('admin-mode');
+      document.getElementById('adminModeBanner').classList.add('visible');
+    } else {
+      document.getElementById('adminPwInput').value = '';
+      document.getElementById('adminPwInput').placeholder = '❌ Password errata...';
+      setTimeout(() => document.getElementById('adminPwInput').placeholder = '••••••••', 2000);
+    }
+  }
+
+  function closeAdminOverlay() {
+    document.getElementById('adminOverlay').classList.remove('visible');
+    document.getElementById('adminPwInput').value = '';
+  }
+
+  function closeAdminPanel() {
+    document.getElementById('adminPanel').classList.remove('visible');
+    // resta in admin-mode così i tasti 🗑️ restano visibili
+  }
+
+  function exitAdminMode() {
+    document.body.classList.remove('admin-mode');
+    document.getElementById('adminModeBanner').classList.remove('visible');
+    closeAdminPanel();
+  }
+
+  document.getElementById('adminTrigger').addEventListener('click', () => {
+    tapCount++;
+    clearTimeout(tapTimer);
+    tapTimer = setTimeout(() => { tapCount = 0; }, 2000);
+    if (tapCount >= 5) {
+      tapCount = 0;
+      document.getElementById('adminOverlay').classList.add('visible');
+      setTimeout(() => document.getElementById('adminPwInput').focus(), 100);
+    }
+  });
+
+  document.getElementById('adminPwInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') checkAdminPassword();
+    if (e.key === 'Escape') closeAdminOverlay();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeAdminOverlay(); closeAdminPanel(); }
+  });
+
+  // Init Firebase
+  try {
+    const app = initializeApp(firebaseConfig);
+    db = getDatabase(app);
+    requestsRef = ref(db, DB_PATH);
+
+    const q = query(requestsRef, orderByChild('ts'));
+    onValue(q, snapshot => {
+      setStatus(true);
+      const entries = [];
+      snapshot.forEach(c => entries.push({ _key: c.key, ...c.val() }));
+      renderList(entries.slice(-MAX));
+    }, () => {
+      setStatus(false);
+      document.getElementById('requestList').innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Errore Firebase.<br>Controlla la configurazione.</p></div>`;
+    });
+  } catch(e) {
+    setStatus(false);
+    console.error(e);
+  }
+
+  // Esposizione globale
+  window.submitRequest = submitRequest;
+  window.deleteDedica = deleteDedica;
+  window.svuotaLista = svuotaLista;
+  window.checkAdminPassword = checkAdminPassword;
+  window.closeAdminOverlay = closeAdminOverlay;
+  window.closeAdminPanel = closeAdminPanel;
+  window.exitAdminMode = exitAdminMode;
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && ['autore','canzone','da','per'].includes(e.target.id)) submitRequest();
+  });
+</script>
+</body>
+</html>
