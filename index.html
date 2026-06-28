@@ -495,6 +495,7 @@
       setStatus(true);
       const entries = [];
      snapshot.forEach(c => entries.push({ _key: c.key, ...c.val() }));
+      console.log('entries ricevute da Firebase:', entries.length);
       entries.sort((a, b) => (a.ts || 0) - (b.ts || 0));
       renderList(entries.slice(-MAX));
     }, () => {
