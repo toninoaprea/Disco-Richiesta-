@@ -256,7 +256,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, push, onValue, query, orderByChild, remove, child }
+  import { getDatabase, ref, push, onValue, remove, child }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   // ============================================================
@@ -491,11 +491,11 @@
     db = getDatabase(app);
     requestsRef = ref(db, DB_PATH);
 
-    const q = query(requestsRef, orderByChild('ts'));
-    onValue(q, snapshot => {
+    onValue(requestsRef, snapshot => {
       setStatus(true);
       const entries = [];
-      snapshot.forEach(c => entries.push({ _key: c.key, ...c.val() }));
+     snapshot.forEach(c => entries.push({ _key: c.key, ...c.val() }));
+      entries.sort((a, b) => (a.ts || 0) - (b.ts || 0));
       renderList(entries.slice(-MAX));
     }, () => {
       setStatus(false);
