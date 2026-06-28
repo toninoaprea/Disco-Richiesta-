@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🎵 Radio Tina - Disco Richiesta</title>
+<title>🎵 Richieste Musicali — Spiaggia</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -100,6 +100,15 @@
   .btn-del-dedica:hover { background: rgba(192,57,43,0.1); }
   body.admin-mode .btn-del-dedica { display: block; }
 
+
+  .song-card.suonata { opacity: 0.42; }
+  .song-card.suonata .song-title { text-decoration: line-through; }
+  .song-card.suonata .song-artist { text-decoration: line-through; }
+  .song-card.suonata::before { background: #bbb !important; }
+  .suonata-label { font-size: 0.72rem; background: #4caf50; color: white; padding: 1px 7px; border-radius: 20px; font-weight: 600; margin-left: 6px; vertical-align: middle; }
+  body.admin-mode .suonata-click { cursor: pointer; }
+  body.admin-mode .suonata-click:hover { opacity: 0.75; }
+
   .loading { text-align: center; padding: 30px; color: var(--text-muted); }
   .spinner { display: inline-block; width: 30px; height: 30px; border: 3px solid rgba(42,143,171,0.2); border-top-color: var(--ocean-light); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 10px; }
   @keyframes spin { to { transform:rotate(360deg); } }
@@ -173,7 +182,7 @@
 
 <div class="container">
   <header class="header">
-    <h1><span class="music-note">♪</span> Radio Tina <em>Disco Richiesta</em> <span class="music-note">♫</span></h1>
+    <h1><span class="music-note">♪</span> Musica alla <em>Spiaggia</em> <span class="music-note">♫</span></h1>
     <p>Dedica una canzone a chi vuoi bene — la suoniamo per te!</p>
     <div class="status-dot">
       <span class="dot" id="dot"></span>
@@ -256,7 +265,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, push, onValue, remove, child }
+  import { getDatabase, ref, push, onValue, query, orderByChild, remove, child, set }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   // ============================================================
@@ -273,9 +282,14 @@
   };
 
   // ============================================================
-  // 🔑 CAMBIA QUESTA PASSWORD ADMIN
+  // 🔑 CAMBIA QUESTA PASSWORD ADMIN (visibile solo a te)
   // ============================================================
   const ADMIN_PASSWORD = "spiaggia2025";
+  // ============================================================
+  // 🔒 TOKEN SEGRETO — deve corrispondere alle regole Firebase
+  //    Cambialo anche nelle regole se lo modifichi qui
+  // ============================================================
+  const ADMIN_TOKEN = "djneno-admin-2025";
   // ============================================================
 
   const MAX = 30; // max dediche totali
@@ -305,6 +319,24 @@
   // Chiave di raggruppamento: titolo+artista normalizzati
   function groupKey(r) {
     return (r.canzone||'').toLowerCase().trim() + '|||' + (r.autore||'').toLowerCase().trim();
+  }
+
+  // Set delle canzoni suonate (chiavi encoded)
+  let suonataSet = new Set();
+
+  async function adminTapSuonata(gKey, canzone) {
+    if (!document.body.classList.contains('admin-mode')) return;
+    const isSuonata = suonataSet.has(gKey);
+    const msg = isSuonata
+      ? `Rimuovere il segno "suonata" da "${canzone}"?`
+      : `Segnare come suonata "${canzone}"?`;
+    if (!confirm(msg)) return;
+    const suonataRef = ref(db, 'suonate/' + gKey);
+    if (isSuonata) {
+      await remove(suonataRef);
+    } else {
+      await set(suonataRef, { ts: Date.now() });
+    }
   }
 
   function renderList(entries) {
@@ -370,12 +402,18 @@
           </div>`;
       }).join('');
 
+      const gKey = encodeURIComponent(groupKey(g.dediche[0]));
+      const isSuonata = suonataSet.has(gKey);
+      const suonataLabel = isSuonata ? ' ✅' : '';
+      const titleClass = isSuonata ? 'song-title suonata-click' : 'song-title suonata-click';
+      const adminTap = `onclick="adminTapSuonata('${gKey}', '${esc(g.canzone)}')"`;
+
       return `
-        <div class="song-card">
+        <div class="song-card${isSuonata ? ' suonata' : ''}">
           <div class="song-header">
             <div class="song-title-row">
-              <div>
-                <div class="song-title">🎵 ${esc(g.canzone)}</div>
+              <div style="flex:1">
+                <div class="${titleClass}" ${adminTap}>🎵 ${esc(g.canzone)}${suonataLabel}</div>
                 <div class="song-artist">${esc(g.autore)}</div>
               </div>
               ${dicheBadge}
@@ -400,7 +438,7 @@
     btn.disabled = true; btn.textContent = '⏳ Invio...';
 
     try {
-      await push(requestsRef, { autore, canzone, da, per, dedica, ts: Date.now() });
+      await push(requestsRef, { autore, canzone, da, per, dedica, ts: Date.now(), _w: true });
       ['autore','canzone','da','per','dedica'].forEach(id => document.getElementById(id).value = '');
       showToast('✅ Richiesta salvata! La suoniamo presto 🎶');
     } catch(e) {
@@ -414,10 +452,14 @@
   async function deleteDedica(key) {
     if (!confirm('Eliminare questa dedica?')) return;
     try {
+      // Scrittura su nodo speciale admin per autorizzare la cancellazione
+      const adminRef = ref(db, `admin_ops/${key}`);
+      await push(adminRef, { token: ADMIN_TOKEN, action: 'delete', target: key, ts: Date.now() });
       await remove(child(requestsRef, key));
       showToast('✅ Dedica eliminata.');
     } catch(e) {
       showToast('❌ Errore durante l\'eliminazione.', true);
+      console.error(e);
     }
   }
 
@@ -491,11 +533,18 @@
     db = getDatabase(app);
     requestsRef = ref(db, DB_PATH);
 
+    
+    // Listener suonate
+    const suonateRef = ref(db, 'suonate');
+    onValue(suonateRef, snap => {
+      suonataSet = new Set();
+      snap.forEach(c => { suonataSet.add(c.key); return false; });
+    });
+
     onValue(requestsRef, snapshot => {
       setStatus(true);
       const entries = [];
-snapshot.forEach(c => { entries.push({ _key: c.key, ...c.val() }); return false; });
-      console.log('entries ricevute da Firebase:', entries.length, 'snapshot size:', snapshot.size);      entries.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+      snapshot.forEach(c => { entries.push({ _key: c.key, ...c.val() }); return false; });
       renderList(entries.slice(-MAX));
     }, () => {
       setStatus(false);
@@ -509,6 +558,7 @@ snapshot.forEach(c => { entries.push({ _key: c.key, ...c.val() }); return false;
   // Esposizione globale
   window.submitRequest = submitRequest;
   window.deleteDedica = deleteDedica;
+  window.adminTapSuonata = adminTapSuonata;
   window.svuotaLista = svuotaLista;
   window.checkAdminPassword = checkAdminPassword;
   window.closeAdminOverlay = closeAdminOverlay;
@@ -521,5 +571,3 @@ snapshot.forEach(c => { entries.push({ _key: c.key, ...c.val() }); return false;
 </script>
 </body>
 </html>
-
-
