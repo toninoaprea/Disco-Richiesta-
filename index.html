@@ -494,7 +494,7 @@
     onValue(requestsRef, snapshot => {
       setStatus(true);
       const entries = [];
-     snapshot.forEach(c => entries.push({ _key: c.key, ...c.val() }));
+ snapshot.forEach(c => { entries.push({ _key: c.key, ...c.val() }); return false; });
 console.log('entries ricevute da Firebase:', entries.length, 'snapshot size:', snapshot.size);      entries.sort((a, b) => (a.ts || 0) - (b.ts || 0));
       renderList(entries.slice(-MAX));
     }, () => {
